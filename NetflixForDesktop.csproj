@@ -47,4 +47,9 @@
     <None Include="UBlock\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="UBlock" />
   </ItemGroup>
 
+  <!-- Copy bundled extensions (Netflix Ambilight, Ultrawide 21:9, ...) to output -->
+  <ItemGroup>
+    <None Include="Extensions\**\*" CopyToOutputDirectory="PreserveNewest" LinkBase="Extensions" />
+  </ItemGroup>
+
 </Project>

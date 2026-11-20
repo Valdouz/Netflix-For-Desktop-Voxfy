@@ -35,6 +35,8 @@ public partial class MainWindow : Window
     private bool _hardwareAccelerationEnabled = true;
     private const string REGISTRY_KEY = @"SOFTWARE\NetflixForDesktop";
     private const string HARDWARE_ACCEL_VALUE = "HardwareAcceleration";
+    private const string AMBILIGHT_VALUE = "Ambilight";
+    private bool _ambilightEnabled = true;
     
     // Default window size
     private const double DEFAULT_WIDTH = 1400;
@@ -342,6 +344,52 @@ public partial class MainWindow : Window
                 new SolidColorBrush(Color.FromRgb(244, 67, 54));   // Red when OFF
             HardwareAccelToggle.ToolTip = $"Hardware Acceleration: {(_hardwareAccelerationEnabled ? "ON" : "OFF")}";
         }
+        if (AmbilightToggle != null)
+        {
+            AmbilightToggle.Foreground = _ambilightEnabled ?
+                new SolidColorBrush(Color.FromRgb(255, 122, 168)) : // Pink when ON
+                new SolidColorBrush(Color.FromRgb(110, 110, 110));  // Grey when OFF
+            AmbilightToggle.ToolTip = _ambilightEnabled
+                ? (_hardwareAccelerationEnabled ? "Ambilight: ON (needs hardware acceleration OFF to work)" : "Ambilight: ON")
+                : "Ambilight: OFF";
+        }
+    }
+
+    private void AmbilightToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _ambilightEnabled = !_ambilightEnabled;
+        SaveSettings();
+        UpdateToggleAppearance();
+        SendAmbilightState();
+
+        // The glow reads video pixels, which DRM blanks out when hardware acceleration is on.
+        if (_ambilightEnabled && _hardwareAccelerationEnabled)
+        {
+            var result = System.Windows.MessageBox.Show(
+                "Ambilight only works with hardware acceleration turned OFF (otherwise the video pixels are hidden by DRM).\n\nTurn hardware acceleration off and restart now?",
+                "Ambilight",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                _hardwareAccelerationEnabled = false;
+                SaveSettings();
+                System.Diagnostics.Process.Start(Environment.ProcessPath ?? "NetflixForDesktop.exe");
+                System.Windows.Application.Current.Shutdown();
+            }
+        }
+    }
+
+    /// <summary>Tells the Netflix Ambilight extension (content script) whether it should run.</summary>
+    private async void SendAmbilightState()
+    {
+        try
+        {
+            if (Web?.CoreWebView2 == null) return;
+            var on = _ambilightEnabled ? "true" : "false";
+            await Web.CoreWebView2.ExecuteScriptAsync($"window.postMessage({{ type: 'nfd-ambilight', enabled: {on} }}, '*');");
+        }
+        catch { }
     }
 
     private void MinButton_Click(object sender, RoutedEventArgs e)
@@ -595,6 +643,43 @@ public partial class MainWindow : Window
         {
             Console.WriteLine($"Failed to load uBlock Origin: {ex.Message}");
         }
+
+        await LoadBundledExtensions();
+
+        // Keep the Ambilight extension in sync with the title bar toggle after every page load.
+        Web.CoreWebView2.NavigationCompleted += async (_, _) =>
+        {
+            SendAmbilightState();
+            await Task.Delay(3000); // the content script may not be listening yet
+            SendAmbilightState();
+        };
+        Web.CoreWebView2.DOMContentLoaded += (_, _) => SendAmbilightState();
+    }
+
+    /// <summary>
+    /// Loads every unpacked extension found in the "Extensions" folder next to the executable
+    /// (Netflix Ambilight, Netflix Ultrawide 21:9, ...). Drop a folder containing a manifest.json there to add one.
+    /// </summary>
+    private async Task LoadBundledExtensions()
+    {
+        var root = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Extensions");
+        if (!System.IO.Directory.Exists(root))
+            return;
+
+        foreach (var dir in System.IO.Directory.GetDirectories(root))
+        {
+            if (!System.IO.File.Exists(System.IO.Path.Combine(dir, "manifest.json")))
+                continue;
+            try
+            {
+                await Web.CoreWebView2.Profile.AddBrowserExtensionAsync(dir);
+                Console.WriteLine($"Extension loaded: {System.IO.Path.GetFileName(dir)}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to load extension {System.IO.Path.GetFileName(dir)}: {ex.Message}");
+            }
+        }
     }
 
     // Auto-update functionality temporarily removed for .NET 8 compatibility
@@ -612,6 +697,11 @@ public partial class MainWindow : Window
                 {
                     _hardwareAccelerationEnabled = enabled;
                 }
+                var amb = key.GetValue(AMBILIGHT_VALUE);
+                if (amb != null && bool.TryParse(amb.ToString(), out bool ambOn))
+                {
+                    _ambilightEnabled = ambOn;
+                }
             }
         }
         catch
@@ -627,6 +717,7 @@ public partial class MainWindow : Window
         {
             using var key = Registry.CurrentUser.CreateSubKey(REGISTRY_KEY);
             key?.SetValue(HARDWARE_ACCEL_VALUE, _hardwareAccelerationEnabled);
+            key?.SetValue(AMBILIGHT_VALUE, _ambilightEnabled);
         }
         catch
         {

@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Netflix Ultrawide 21:9",
+  "version": "1.0.0",
+  "description": "Zoom the Netflix player to fill 21:9 ultrawide screens (removes the black bars of cinemascope films). Press Z to toggle.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://www.netflix.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.netflix.com/*", "https://netflix.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

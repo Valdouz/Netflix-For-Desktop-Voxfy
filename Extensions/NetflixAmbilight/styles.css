@@ -1,0 +1,51 @@
+/* Styles injectés pour le halo Netflix Ambilight.
+   Le canvas est en position fixe derrière la vidéo.
+   La vidéo est légèrement réduite en plein écran pour laisser le halo visible. */
+
+#nflx-amb-bg {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  object-fit: cover !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+  opacity: 0.75;
+}
+
+/* La vidéo Netflix passe au-dessus du halo */
+video.nflx-amb-video {
+  position: relative !important;
+  z-index: 1 !important;
+  background: transparent !important;
+}
+
+/* Quand l'ambilight est actif : rend transparents les fonds noirs du player
+   Netflix (sinon ils recouvrent le canvas et les bandes restent noires).
+   Le canvas fixe derrière devient visible dans les zones letterbox/pillarbox. */
+html.nflx-amb-on body {
+  background: #000 !important;
+}
+
+html.nflx-amb-on #appMountPoint,
+html.nflx-amb-on #appMountPoint > div,
+html.nflx-amb-on .watch-video,
+html.nflx-amb-on .watch-video--player-view,
+html.nflx-amb-on .watch-video--container,
+html.nflx-amb-on .nfp,
+html.nflx-amb-on .nfp .VideoContainer,
+html.nflx-amb-on .VideoContainer,
+html.nflx-amb-on [data-uia="video-canvas"],
+html.nflx-amb-on [data-uia="player"],
+html.nflx-amb-on [data-uia="watch-video-container"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* En plein écran : on rétrécit un peu la vidéo pour révéler le halo autour.
+   Désactivable depuis le popup (option shrinkFullscreen). */
+video.nflx-amb-shrink {
+  transform: scale(0.94) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 120px rgba(0, 0, 0, 0.9) !important;
+}

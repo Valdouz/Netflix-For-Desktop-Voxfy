@@ -157,8 +157,17 @@
                             Content="&#xE950;" 
                             ToolTip="Hardware Acceleration: ON" 
                             shell:WindowChrome.IsHitTestVisibleInChrome="True" 
-                            Foreground="#4CAF50" 
-                            Margin="2" 
+                            Foreground="#4CAF50"
+                            Margin="2"
+                            FontSize="21"/>
+                    <Button x:Name="AmbilightToggle"
+                            Style="{StaticResource ModernWindowButton}"
+                            Click="AmbilightToggle_Click"
+                            Content="&#xE706;"
+                            ToolTip="Ambilight: ON"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Foreground="#FF7AA8"
+                            Margin="2"
                             FontSize="21"/>
                 </StackPanel>
                 

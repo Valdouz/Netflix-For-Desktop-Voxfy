@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 250px; font-family: system-ui, sans-serif; padding: 12px; background: #141414; color: #eee; }
+  h1 { font-size: 14px; margin: 0 0 10px; }
+  h1 span { color: #e50914; }
+  label { display: block; font-size: 12px; margin: 8px 0 2px; }
+  input[type=range] { width: 100%; }
+  .row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; margin-top: 8px; }
+  .val { color: #aaa; font-size: 11px; }
+  button { margin-top: 10px; width: 100%; padding: 6px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  #toggle { background: #e50914; color: #fff; }
+  #toggle.off { background: #444; }
+  .hint { font-size: 11px; color: #999; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+  <h1><span>●</span> Netflix Ambilight</h1>
+  <div class="row">
+    <span>Activé</span>
+    <button id="toggle" style="width:auto;padding:4px 14px;">ON</button>
+  </div>
+  <label>Intensité <span class="val" id="v-opacity"></span></label>
+  <input type="range" id="opacity" min="0" max="1" step="0.05">
+  <label>Flou <span class="val" id="v-blur"></span></label>
+  <input type="range" id="blur" min="20" max="140" step="5">
+  <label>Saturation <span class="val" id="v-saturate"></span></label>
+  <input type="range" id="saturate" min="0.5" max="3" step="0.1">
+  <label>Images/sec <span class="val" id="v-fps"></span></label>
+  <input type="range" id="fps" min="5" max="30" step="1">
+  <div class="row">
+    <span style="font-size:12px;">Réduire vidéo en plein écran</span>
+    <input type="checkbox" id="shrinkFullscreen">
+  </div>
+  <div class="hint">Sans accélération matérielle, la capture fonctionne. Si le halo reste noir, la DRM bloque encore ton setup.</div>
+  <button id="test" style="background:#333;color:#eee;">Tester le halo (rouge)</button>
+  <script src="popup.js"></script>
+</body>
+</html>
