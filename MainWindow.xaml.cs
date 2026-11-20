@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -37,6 +37,8 @@ public partial class MainWindow : Window
     private const string HARDWARE_ACCEL_VALUE = "HardwareAcceleration";
     private const string AMBILIGHT_VALUE = "Ambilight";
     private bool _ambilightEnabled = true;
+    private const string ULTRAWIDE_VALUE = "Ultrawide";
+    private bool _ultrawideEnabled = false;
     
     // Default window size
     private const double DEFAULT_WIDTH = 1400;
@@ -353,6 +355,36 @@ public partial class MainWindow : Window
                 ? (_hardwareAccelerationEnabled ? "Ambilight: ON (needs hardware acceleration OFF to work)" : "Ambilight: ON")
                 : "Ambilight: OFF";
         }
+        if (UltrawideToggle != null)
+        {
+            UltrawideToggle.Foreground = _ultrawideEnabled ?
+                new SolidColorBrush(Color.FromRgb(79, 195, 247)) :  // Blue when ON
+                new SolidColorBrush(Color.FromRgb(110, 110, 110));  // Grey when OFF
+            UltrawideToggle.ToolTip = _ultrawideEnabled
+                ? "Ultrawide 21:9 zoom: ON"
+                : "Ultrawide 21:9 zoom: OFF";
+        }
+    }
+
+    private void UltrawideToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _ultrawideEnabled = !_ultrawideEnabled;
+        SaveSettings();
+        UpdateToggleAppearance();
+        SendUltrawideState(userAction: true);
+    }
+
+    /// <summary>Tells the Ultrawide extension whether the 21:9 zoom is on.</summary>
+    private async void SendUltrawideState(bool userAction = false)
+    {
+        try
+        {
+            if (Web?.CoreWebView2 == null) return;
+            var on = _ultrawideEnabled ? "true" : "false";
+            var user = userAction ? "true" : "false";
+            await Web.CoreWebView2.ExecuteScriptAsync($"window.postMessage({{ type: 'nfd-ultrawide', enabled: {on}, user: {user} }}, '*');");
+        }
+        catch { }
     }
 
     private void AmbilightToggle_Click(object sender, RoutedEventArgs e)
@@ -650,10 +682,12 @@ public partial class MainWindow : Window
         Web.CoreWebView2.NavigationCompleted += async (_, _) =>
         {
             SendAmbilightState();
-            await Task.Delay(3000); // the content script may not be listening yet
+            SendUltrawideState();
+            await Task.Delay(3000); // the content scripts may not be listening yet
             SendAmbilightState();
+            SendUltrawideState();
         };
-        Web.CoreWebView2.DOMContentLoaded += (_, _) => SendAmbilightState();
+        Web.CoreWebView2.DOMContentLoaded += (_, _) => { SendAmbilightState(); SendUltrawideState(); };
     }
 
     /// <summary>
@@ -702,6 +736,11 @@ public partial class MainWindow : Window
                 {
                     _ambilightEnabled = ambOn;
                 }
+                var uw = key.GetValue(ULTRAWIDE_VALUE);
+                if (uw != null && bool.TryParse(uw.ToString(), out bool uwOn))
+                {
+                    _ultrawideEnabled = uwOn;
+                }
             }
         }
         catch
@@ -718,6 +757,7 @@ public partial class MainWindow : Window
             using var key = Registry.CurrentUser.CreateSubKey(REGISTRY_KEY);
             key?.SetValue(HARDWARE_ACCEL_VALUE, _hardwareAccelerationEnabled);
             key?.SetValue(AMBILIGHT_VALUE, _ambilightEnabled);
+            key?.SetValue(ULTRAWIDE_VALUE, _ultrawideEnabled);
         }
         catch
         {

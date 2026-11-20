@@ -169,6 +169,17 @@
                             Foreground="#FF7AA8"
                             Margin="2"
                             FontSize="21"/>
+                    <Button x:Name="UltrawideToggle"
+                            Style="{StaticResource ModernWindowButton}"
+                            Click="UltrawideToggle_Click"
+                            Content="21:9"
+                            ToolTip="Ultrawide 21:9 zoom: OFF"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True"
+                            Foreground="#6E6E6E"
+                            FontFamily="Segoe UI"
+                            FontWeight="Bold"
+                            Margin="2"
+                            FontSize="13"/>
                 </StackPanel>
                 
                 <!-- Right side: Window control buttons -->

@@ -176,11 +176,11 @@ This fork loads every unpacked extension found in the `Extensions/` folder at st
 | Extension | What it does | Shortcut |
 | --- | --- | --- |
 | **Netflix Ambilight** | Ambient glow around the video (like "Ambient light for YouTube"). | Title bar button (brightness icon) |
-| **Netflix Ultrawide 21:9** | Zooms the player to fill 21:9 screens and removes the black bars of cinemascope films. Only active when the window is wider than 2:1. | `Z` toggle, `Shift+Z` cycle presets (auto, 21:9, 2.39:1, 2:1) |
+| **Netflix Ultrawide 21:9** | Fills 21:9 screens by cropping the black bars of cinemascope films (centred, `object-fit: cover`). Off by default. | Title bar "21:9" button |
 
 Notes:
 - Ambilight reads the video pixels, which DRM blocks when hardware acceleration is on. When you turn Ambilight on, the app offers to turn hardware acceleration off and restart. Both settings are remembered.
-- Extension popups are not shown by WebView2, so Ambilight is controlled from the title bar and Ultrawide with keyboard shortcuts.
+- Extension popups are not shown by WebView2, so both are controlled from the title bar (settings are remembered).
 - To add your own extension, drop its folder (with a `manifest.json`) into `Extensions/`.
 
 Build: install the .NET 8 SDK, run `setup.bat` once to download uBlock Origin, then `dotnet publish -c Release -r win-x64 --self-contained false -o publish`.

@@ -1,53 +1,32 @@
 /* Netflix Ultrawide 21:9
  *
  * Most films are shot in ~2.39:1 but Netflix delivers them inside a 16:9 frame with black bars baked in.
- * On a 21:9 screen you get bars on every side. This script scales the <video> so the picture fills the
- * window width (crop mode), like the "21:9" button of popular extensions.
+ * On a 21:9 screen you then get bars on every side. When enabled, the picture is made to fill the video
+ * box with `object-fit: cover`: cropped just enough to remove the bars, and always centred
+ * (no transform, so it cannot drift to a corner whatever the player layout is).
  *
- * Shortcuts (on the player): Z = toggle zoom, Shift+Z = cycle zoom presets.
+ * OFF by default. Switched on/off from the app's title bar "21:9" button (message 'nfd-ultrawide').
  */
 (() => {
-  const PRESETS = [
-    { name: 'Auto (fill width)', factor: null },
-    { name: '21:9 (2.37:1)', factor: 2.37 / (16 / 9) },
-    { name: '2.39:1 cinemascope', factor: 2.39 / (16 / 9) },
-    { name: '2:1 (Univisium)', factor: 2.0 / (16 / 9) }
-  ];
-  let state = { enabled: true, preset: 0 };
+  let enabled = false;
   let toastTimer = 0;
+
+  // A stylesheet with !important wins over the inline styles Netflix puts on the player.
+  const style = document.createElement('style');
+  style.textContent = 'video.nfd-uw { object-fit: cover !important; object-position: center center !important; }';
+  (document.head || document.documentElement).appendChild(style);
 
   const store = chrome?.storage?.local;
   if (store) {
-    store.get(['uwEnabled', 'uwPreset'], (v) => {
-      if (typeof v.uwEnabled === 'boolean') state.enabled = v.uwEnabled;
-      if (Number.isInteger(v.uwPreset)) state.preset = v.uwPreset % PRESETS.length;
+    store.get(['uwEnabled'], (v) => {
+      if (typeof v.uwEnabled === 'boolean') enabled = v.uwEnabled;
       apply();
     });
   }
-  const save = () => store && store.set({ uwEnabled: state.enabled, uwPreset: state.preset });
-
-  function factor(video) {
-    const p = PRESETS[state.preset];
-    if (p.factor) return p.factor;
-    // Auto: scale so a 16:9 frame fills the window width, never more than the window's own ratio allows.
-    const winRatio = window.innerWidth / window.innerHeight;
-    const vidRatio = (video.videoWidth && video.videoHeight) ? video.videoWidth / video.videoHeight : 16 / 9;
-    return Math.max(1, winRatio / vidRatio);
-  }
 
   function apply() {
-    const video = document.querySelector('video');
-    if (!video) return;
-    const onWatch = location.pathname.startsWith('/watch');
-    const ultrawide = window.innerWidth / window.innerHeight > 2.0;
-    if (state.enabled && onWatch && ultrawide) {
-      const f = factor(video);
-      video.style.transform = `scale(${f.toFixed(4)})`;
-      video.style.transformOrigin = 'center center';
-      video.style.transition = 'transform .25s ease';
-    } else {
-      video.style.transform = '';
-    }
+    const on = enabled && location.pathname.startsWith('/watch');
+    document.querySelectorAll('video').forEach((video) => video.classList.toggle('nfd-uw', on));
   }
 
   function toast(text) {
@@ -58,7 +37,7 @@
       Object.assign(el.style, {
         position: 'fixed', top: '28px', left: '50%', transform: 'translateX(-50%)', zIndex: 2147483647,
         background: 'rgba(20,18,28,.85)', color: '#fff', font: '600 16px system-ui, sans-serif',
-        padding: '10px 18px', borderRadius: '999px', border: '1px solid rgba(255,122,168,.6)',
+        padding: '10px 18px', borderRadius: '999px', border: '1px solid rgba(79,195,247,.6)',
         pointerEvents: 'none', transition: 'opacity .3s'
       });
       document.documentElement.appendChild(el);
@@ -69,23 +48,17 @@
     toastTimer = setTimeout(() => (el.style.opacity = '0'), 1400);
   }
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key !== 'z' && e.key !== 'Z') return;
-    if (e.target && /input|textarea/i.test(e.target.tagName)) return;
-    if (e.shiftKey) {
-      state.preset = (state.preset + 1) % PRESETS.length;
-      state.enabled = true;
-      toast(`Ultrawide : ${PRESETS[state.preset].name}`);
-    } else {
-      state.enabled = !state.enabled;
-      toast(state.enabled ? `Ultrawide activé · ${PRESETS[state.preset].name}` : 'Ultrawide désactivé');
-    }
-    save();
+  // Title bar button of the app
+  window.addEventListener('message', (e) => {
+    if (e.source !== window || !e.data || e.data.type !== 'nfd-ultrawide') return;
+    const on = !!e.data.enabled;
+    if (on !== enabled && e.data.user) toast(on ? '21:9 activé' : '21:9 désactivé');
+    enabled = on;
+    if (store) store.set({ uwEnabled: enabled });
     apply();
-  }, true);
+  });
 
-  // Netflix is a single-page app: re-apply when the player or the window changes.
-  window.addEventListener('resize', apply);
+  // Netflix is a single-page app: re-apply when the player appears or changes.
   document.addEventListener('loadedmetadata', apply, true);
   let pending = false;
   new MutationObserver(() => {
